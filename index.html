@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Delivery Service</title>
+  <meta name="description" content="Local Delivery Web App - Order groceries, track delivery, and manage products in real-time.">
+  <meta name="keywords" content="local delivery, groceries, food delivery, order tracking">
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f9f9f9;}
+    header {background:#2196f3; color:#fff; padding:15px; text-align:center; font-size:22px;}
+    .container {padding:20px; max-width:800px; margin:auto;}
+    .panel {background:#fff; border-radius:5px; padding:15px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+    h2 {color:#333;}
+    button {padding:8px 12px; margin-top:5px; border:none; background:#2196f3; color:#fff; border-radius:4px; cursor:pointer;}
+    button:hover {background:#1976d2;}
+    input {padding:6px; margin:5px 0; width:100%; box-sizing:border-box;}
+    .ads {margin:10px 0; padding:10px; background:#eee; text-align:center;}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+</head>
+<body>
+<header>Local Delivery Service</header>
+<div class="container">
+  <!-- ✅ Google AdSense Placeholder -->
+  <div class="ads">[Google AdSense Ad Placeholder]</div>
+
+  <div class="panel">
+    <h2>Customer Panel</h2>
+    <div id="products"></div>
+    <h3>My Orders</h3>
+    <div id="myOrders"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Delivery Partner Panel</h2>
+    <div id="orders"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Admin Panel</h2>
+    <input id="pname" placeholder="Product Name">
+    <input id="pprice" type="number" placeholder="Price">
+    <button onclick="addProduct()">Add Product</button>
+    <h3>Manage Products</h3>
+    <div id="allProducts"></div>
+  </div>
+</div>
+
+<script>
+  // ✅ Firebase Config (अपना Firebase Config डालें)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const customerId = "customer123"; // टेस्ट के लिए डेमो ID
+
+  // ✅ Load Products for Customer
+  function loadProducts() {
+    db.collection("products").onSnapshot(snapshot => {
+      let html = "";
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<p><b>${d.name}</b> - ₹${d.price} 
+        <button onclick="placeOrder('${d.name}', ${d.price})">Order</button></p>`;
+      });
+      document.getElementById("products").innerHTML = html;
+    });
+  }
+
+  // ✅ Place Order
+  function placeOrder(name, price) {
+    db.collection("orders").add({ 
+      product: name, price: price, status: "Pending", customerId: customerId 
+    });
+    alert("Order Placed!");
+  }
+
+  // ✅ Show My Orders (Customer)
+  function loadMyOrders() {
+    db.collection("orders").where("customerId","==",customerId)
+    .onSnapshot(snapshot => {
+      let html = "";
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<p>${d.product} - Status: ${d.status}</p>`;
+      });
+      document.getElementById("myOrders").innerHTML = html;
+    });
+  }
+
+  // ✅ Delivery Partner – Orders
+  function loadOrders() {
+    db.collection("orders").onSnapshot(snapshot => {
+      let html = "";
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<p>${d.product} - ${d.status} 
+        <button onclick="markDelivered('${doc.id}')">Mark Delivered</button></p>`;
+      });
+      document.getElementById("orders").innerHTML = html;
+    });
+  }
+
+  function markDelivered(id) {
+    db.collection("orders").doc(id).update({ status:"Delivered" });
+  }
+
+  // ✅ Admin – Add Product
+  function addProduct() {
+    const name = document.getElementById("pname").value;
+    const price = parseInt(document.getElementById("pprice").value);
+    db.collection("products").add({ name:name, price:price });
+    document.getElementById("pname").value="";
+    document.getElementById("pprice").value="";
+    alert("Product Added!");
+  }
+
+  // ✅ Admin – Manage Products
+  function loadAllProducts() {
+    db.collection("products").onSnapshot(snapshot => {
+      let html = "";
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<p>${d.name} - ₹${d.price}
+        <button onclick="deleteProduct('${doc.id}')">Delete</button></p>`;
+      });
+      document.getElementById("allProducts").innerHTML = html;
+    });
+  }
+
+  function deleteProduct(id) {
+    db.collection("products").doc(id).delete();
+  }
+
+  loadProducts();
+  loadMyOrders();
+  loadOrders();
+  loadAllProducts();
+</script>
+</body>
+</html>
